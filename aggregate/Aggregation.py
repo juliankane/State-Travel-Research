@@ -4,10 +4,12 @@ from datetime import datetime
 import os
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
+SOURCE = 'states-source'
+
 date = datetime.now().strftime('%S')
 
 states = ['Alabama', 'Alaska', 'Arizona', 'Arkansas', 'California',
-       'Colorado', 'Connecticut', 'Delaware', 'District of Columbia',
+       'Colorado', 'Connecticut', 'Delaware',
        'Florida', 'Georgia', 'Hawaii', 'Idaho', 'Illinois', 'Indiana', 'Iowa',
        'Kansas', 'Kentucky', 'Louisiana', 'Maine', 'Maryland', 'Massachusetts',
        'Michigan', 'Minnesota', 'Mississippi', 'Missouri', 'Montana',
@@ -69,18 +71,18 @@ postal_codes_with_states = {'AL': 'Alabama','AK': 'Alaska','AZ': 'Arizona','AR':
 
 def aggregate_to_main(name, data = None):
     
-    states_aggregated_source = pd.read_csv('states_aggregated_source.csv')
-    states_aggregated_source.index = states_aggregated_source['States']
-    states_aggregated_source.drop(columns='States', inplace=True)
+    source = pd.read_csv(f'{SOURCE}.csv')
+    source.index = source['States']
+    source.drop(columns='States', inplace=True)
 
     data = pd.read_csv(f'{name}.csv')
     data.index = data['States']
     data.drop(columns='States',inplace=True)
-    new_data = states_aggregated_source.join(data, how='outer')
+    new_data = source.join(data, how='outer')
 
     new_data.replace(',','', regex=True)
     new_data = new_data.apply(pd.to_numeric, errors="coerce")
-    new_data.to_csv(f'{date}states_aggregated_source.csv')
+    new_data.to_csv(f'{date}{SOURCE}.csv')
 
 def no_age(data):
     drop_strings = ["years", "Male", "Female"]
@@ -91,13 +93,13 @@ def no_age(data):
 def no_sex(data):
     drop_strings = ["Male", "Female"]
     drop_from_strings(data, drop_strings)
-    data.to_csv("states_aggregated_nosex.csv")
+    data.to_csv("states_nosex.csv")
     pass
 
 def no_agesex(data):
     drop_strings = ["sex", "Male", "Female"]
     drop_from_strings(data, drop_strings)
-    data.to_csv("states_aggregated_noagesex.csv")
+    data.to_csv("states_noagesex.csv")
     pass
 
 
@@ -108,27 +110,30 @@ def drop_from_strings(data, drop_strings):
     return
 
 def create_off_data(type = 'all'):
-    states_aggregated_source = pd.read_csv("states_aggregated_source.csv")
-    states_aggregated_source.index = states_aggregated_source['States']
-    states_aggregated_source.drop(columns='States', inplace=True)
+    source = pd.read_csv(f"{SOURCE}.csv")
+    source.index = source['States']
+    source.drop(columns='States', inplace=True)
 
-    no_age(states_aggregated_source)
-    no_sex(states_aggregated_source)
-    no_agesex(states_aggregated_source)
+    no_age(source)
+    no_sex(source)
+    no_agesex(source)
 
 
 def adjust_source():
-    states_aggregated_source = pd.read_csv('states_aggregated_source.csv')
-    states_aggregated_source.index = states_aggregated_source['States']
-    states_aggregated_source.drop(columns='States', inplace=True)
+    source = pd.read_csv(f'{SOURCE}.csv')
+    source.index = source['States']
+    source.drop(columns='States', inplace=True)
 
-    states_aggregated_source.replace(',','', regex=True, inplace=True)
-    new_data = states_aggregated_source.apply(pd.to_numeric, errors="coerce")
-    new_data.to_csv(f'{date}states_aggregated_source.csv')
+    source.replace(',','', regex=True, inplace=True)
+    new_data = source.apply(pd.to_numeric, errors="coerce")
+    new_data.to_csv(f'{date}{source}.csv')
+
+
+
 
 
 #adjust_source()
-create_off_data()
+#create_off_data()
 
 
 
@@ -140,7 +145,7 @@ create_off_data()
 # for key, value  in data_features_ready.items():
 #      final_aggregate_test(value, key, to_csv= False)
 
-# _drop_extra = pd.read_csv("C:/Users/Julia/OneDrive/Documents/GitHub/BigDataProject/aggregate/states_aggregated_source.csv")
+# _drop_extra = pd.read_csv("C:/Users/Julia/OneDrive/Documents/GitHub/BigDataProject/aggregate/source.csv")
 
 # final_aggregate_test(_drop_extra, "no pop")
 
