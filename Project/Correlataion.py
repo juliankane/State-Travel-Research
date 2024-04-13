@@ -5,7 +5,10 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 from sklearn.metrics import mean_squared_error, r2_score
-from Datasets import states
+from Project.Travel import TravelDistance
+
+
+trips_labels = ['Number of Trips >=500', 'Number of Trips 250-500', 'Number of Trips 100-250']
 
 
 def exclude_feature_comparisons(data, mask = [], feats = []):
@@ -20,14 +23,10 @@ def exclude_feature_comparisons(data, mask = [], feats = []):
             mask[index1, index2] = True
     return mask
 
-trips_labels = ['Number of Trips >=500', 'Number of Trips 250-500', 'Number of Trips 100-250']
-
-
-states = states.load_state_data(type="noagesex")
+TravelDistance = TravelDistance.load_state_data(type="noagesex")
 
 # load cor_eff
-cor_eff = states.corr(numeric_only=True)
-
+cor_eff = TravelDistance.corr(numeric_only=True)
 
 # create subplot
 _, ax = plt.subplots(figsize=(10,10), constrained_layout=True)
@@ -36,11 +35,37 @@ _, ax = plt.subplots(figsize=(10,10), constrained_layout=True)
 mask = np.triu(np.ones_like(cor_eff, dtype=bool))
 mask = exclude_feature_comparisons(cor_eff, mask = mask, feats=trips_labels)
 
+# heatmap
 sns.heatmap(cor_eff,linecolor='white',linewidths=1,mask=mask, ax=ax, annot=True,cmap="rocket_r")
 plt.show()
 
-g = sns.pairplot(states, hue='States')
+g = sns.pairplot(TravelDistance)
 plt.show()
+
+
+
+
+'''
+
+Train model to game more insights into the data
+
+Linear-Regression - 
+
+'''
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
