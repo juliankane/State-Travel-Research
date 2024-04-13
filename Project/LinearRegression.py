@@ -34,7 +34,7 @@ class LinearRegression:
 
                 }
         }
-    
+        
 def do_regression(self, predictor,  **kwargs):
     train_size = kwargs.get('train_size', 0.2)
     state_size = kwargs.get('state_size',100)

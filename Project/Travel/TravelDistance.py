@@ -1,14 +1,12 @@
 import pandas as pd
-
-from Subsets import __init__
-from aggregate import Aggregation # import functions from Aggregation
 import os
 cwd = os.getcwd()
+from Travel.aggregate import Aggregation # import functions from Aggregation
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 
 
-PER_CAPITA_FEATS = ["vehicles", "poverty"] # add any per capita feature data here
+PER_CAPITA_FEATS = ["vehicles", "poverty", "age", "trips"] # add any per capita feature data here
 
 '''
 class to easily integrate new datasets into the mix for feature selection
@@ -73,6 +71,7 @@ class TravelDistance:
          # note: you can use only = "age"  to just get the age 
 
     '''
+
     def load_feature_data(self, labels = "full", locations = [], exclude = [], only = [], include_age = False):
         if exclude and only:
             raise ValueError("These parameters should not be used together")
@@ -83,6 +82,13 @@ class TravelDistance:
         else:
             self.trips_df.index = self.trips_df.index.map(Aggregation.STATE_DICT)
         
+        # to coerce parameters exclude & only into a list if only one feature was given
+        def ceorce_list(input):
+            if not isinstance(input, list):
+                return [input]
+            else:
+                return input
+            
         # prepare the datatypes and indices of each dataset being joined together
         def prepare(df, datatypes = True, labels = True):
             if datatypes:
@@ -92,19 +98,12 @@ class TravelDistance:
                 df.drop(index=drop_idx, inplace=True, errors='ignore')
                 df.sort_index(inplace=True)
             return df
-        
-        # to coerce parameters exclude & only into a list if only one feature was given
-        def ceorce_list(input):
-            if not isinstance(input, list):
-                return [input]
-            else:
-                return input
-
+    
         # load population to divide any datasets that need to be per capita
         _population = pd.read_csv("population_totals.csv")
         pop = prepare(_population)
 
-        
+
         # get selected data - defaults on ALL features except age
         selection = []
         if only:
@@ -120,7 +119,6 @@ class TravelDistance:
         if include_age and "age" not in selection:
             selection.append("age")
 
-
         # load and join datasets from /Subsets/.csv's
         for dataset in selection:
             if dataset in selection:
@@ -131,10 +129,11 @@ class TravelDistance:
                     df = df.assign(**{col: df[col] / pop[f"Pop. {self.year}"] for col in df.columns})
                 self.trips_df = self.trips_df.join(df, how="outer")
 
-
         # prepare and return final set
         self.trips_df = prepare(self.trips_df, datatypes=False).dropna(axis=0)    
         return self.trips_df
     
 
+    def get_features(self):
+        return self.trips_distance
 
