@@ -6,7 +6,8 @@ os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 
 
-PER_CAPITA_FEATS = ["vehicles", "poverty", "age", "trips"] # add any per capita feature data here
+
+PER_CAPITA_FEATS = ["vehicles", "poverty", "age", "trips", "airports"] # add any per capita feature data here
 
 '''
 class to easily integrate new datasets into the mix for feature selection
@@ -17,48 +18,48 @@ usage:
 class TravelDistance: 
     def __init__(self, area = "State", year = '2022', distance_range = (0,)):
 
-        area = "State" # ignore
-        self.area = area # always state -------- include national/county later maybe
-        self.year = year # always 2022  -------- hard to find a lot of matching data all for 2022
+        self.area = area # state/regional
+        self.year = year # always 2022 
         self.trips_df = None 
-        self.areas = ["State"] 
-
+        self.areas = ["State", "Region"] 
+        self.regions = Aggregation.regions_abrv
 
         # feature data included in Travel/Subsets
         self.feature_data = ["airports", "gdp", "household_income", 
                              "poverty", "vehicles", "personal_expenditures"]
         
-        # trips_by_distance in trips_data.csv
+        # distance of trips
         self.trips_distance = ['Trips <1', 'Trips 1-3', 'Trips 3-5', 'Trips 5-10', 'Trips 10-25', 'Trips 25-50', 'Trips 50-100', 'Trips 100-250', 'Trips 250-500', 'Trips >=500'] 
 
+        # ld travel data
+        self.travel_data = self._loadTravelData(distance_range) 
 
-        # load travel data on __init__
-        self.travel_data = self._loadTravelData(area, year, distance_range) 
 
-    def _loadTravelData(self, area, year, distance):
-        trav_df = pd.read_csv("trips_data.csv")
+    def _loadTravelData(self, distance):
+        trips = pd.read_csv("trips_data.csv")
 
         # aggregate trips by year / location
-        trav_df.index = trav_df['Date'].astype('str')
-        trav_df.drop(columns="Date", inplace=True)
-        trav_df_year = trav_df[trav_df.index.str.contains(year)]
+        trips.index = trips['Date'].astype('str')
+        trips.drop(columns="Date", inplace=True)
+        trips = trips[trips.index.str.contains(self.year)]
 
-        _unused = [location for location in self.areas if location != area]
-        _unused.append("Date")
-        
-        if area in self.areas:
-            trips_df_year = trav_df_year.groupby(area)[self.trips_distance].sum()
+      
+
+        if self.area in self.areas:
+            if self.area == "Region":
+                trips['Region'] = trips['State'].map({state: region for region, states in self.regions.items() for state in states})
+                trips = trips.groupby('Region')[self.trips_distance].sum()
+            elif self.area == "State":
+                trips = trips.groupby(self.area)[self.trips_distance].sum()
         else:
             raise ValueError
-        
-        # return
-        self.trips_df = trips_df_year
+        trips.sort_index(inplace=True)
+        self.trips_df = trips
     
 
     '''
     returns dataframe with feature data
     IF no arguments are given - load all feature data except 'age'
-    
         
     # labels - "full" - state names, "abrv" -abbreviations 
     # locations - unused - always 'State' 
@@ -71,38 +72,45 @@ class TravelDistance:
          # note: you can use only = "age"  to just get the age 
 
     '''
-
-    def load_feature_data(self, labels = "full", locations = [], exclude = [], only = [], include_age = False):
+    def load_feature_data(self, labels = "full", locations = [], exclude = [], only = [], include_age = False) -> pd.DataFrame:
         if exclude and only:
             raise ValueError("These parameters should not be used together")
         
+
         # ignore
-        if labels == "full":
-            self.trips_df.index = self.trips_df.index.map(Aggregation.STATE_DICT)
-        else:
-            self.trips_df.index = self.trips_df.index.map(Aggregation.STATE_DICT)
-        
+        # if labels == "full":
+        #     self.trips_df.index = self.trips_df.index.map(Aggregation.STATE_DICT)
+        # else:
+        #     self.trips_df.index = self.trips_df.index.map(Aggregation.STATE_DICT)
         # to coerce parameters exclude & only into a list if only one feature was given
-        def ceorce_list(input):
+
+        def ceorce_list(input): # inputs to this function were just a string
             if not isinstance(input, list):
                 return [input]
             else:
                 return input
-            
-        # prepare the datatypes and indices of each dataset being joined together
-        def prepare(df, datatypes = True, labels = True):
-            if datatypes:
-                df = Aggregation.adjust_source_datatypes(df, index = "State")   
-            if labels:
-                drop_idx = locations + Aggregation.DROP_INDEX
-                df.drop(index=drop_idx, inplace=True, errors='ignore')
-                df.sort_index(inplace=True)
-            return df
     
-        # load population to divide any datasets that need to be per capita
-        _population = pd.read_csv("population_totals.csv")
-        pop = prepare(_population)
+        def prepare_datatypes(df, idx = self.area): # prepare datatypes
+            if idx == "State":
+                df = Aggregation.adjust_source_datatypes(df, index = idx)   
+                return df
+            else:
+                df.reset_index(drop=True,inplace=True)
+                df['Region'] = df['State'].map({state: region for region, states in Aggregation.regions.items() for state in states})
+                df = Aggregation.adjust_source_datatypes(df, index=self.area).dropna(how='all',axis=1)
+                regional = df.groupby('Region')[df.columns].sum()
+                return regional
+            
+        def drop_excess_labels(df): # drop excess labels, e.g. District of Colombia, Puerto rico
+            drop_idx = locations + Aggregation.DROP_INDEX
+            df.drop(index=drop_idx, inplace=True, errors='ignore')
+            df.sort_index(inplace=True)
+            return df
 
+        def adjust_per_capita(df, population, idx = self.area, year = self.year): # adjust per capita
+            return df.assign(**{col: df[col] / population[f"Pop. {self.year}"] for col in df.columns})
+        
+        
 
         # get selected data - defaults on ALL features except age
         selection = []
@@ -114,26 +122,36 @@ class TravelDistance:
             selection = [feature for feature in self.feature_data if feature not in exclude]
         else:
             selection = self.feature_data
-
-        # age selected ----- check for 'only = "age"'
         if include_age and "age" not in selection:
             selection.append("age")
+
+
+
+         # load population totals
+        _population = pd.read_csv("population_totals.csv")
+        pop = prepare_datatypes(_population, self.area)
+        pop = drop_excess_labels(pop)
+     
+        self.trips_df = adjust_per_capita(self.trips_df, pop)
+
+
 
         # load and join datasets from /Subsets/.csv's
         for dataset in selection:
             if dataset in selection:
                 feature_df = pd.read_csv(f'Subsets/{dataset}.csv')
-                df = prepare(feature_df)
+                df = prepare_datatypes(feature_df, self.area)
+                df = drop_excess_labels(df)
 
-                if dataset in PER_CAPITA_FEATS:
-                    df = df.assign(**{col: df[col] / pop[f"Pop. {self.year}"] for col in df.columns})
+                if dataset in PER_CAPITA_FEATS: # adjust per capita
+                    df = adjust_per_capita(df, pop)
+
                 self.trips_df = self.trips_df.join(df, how="outer")
-
-        # prepare and return final set
-        self.trips_df = prepare(self.trips_df, datatypes=False).dropna(axis=0)    
+        self.trips_df = drop_excess_labels(self.trips_df).dropna(axis=0)    
         return self.trips_df
     
 
     def get_features(self):
         return self.trips_distance
-
+    
+    

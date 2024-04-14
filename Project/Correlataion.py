@@ -1,11 +1,10 @@
-from sklearn.linear_model import LinearRegression
-from sklearn.model_selection import train_test_split
+
 import numpy as np
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
-from sklearn.metrics import mean_squared_error, r2_score
 from Travel.TravelDistance import TravelDistance
+from LinearRegression import LR_Model
 
 
 def exclude_feature_comparisons(data, mask = [], feats = []):
@@ -20,37 +19,40 @@ def exclude_feature_comparisons(data, mask = [], feats = []):
     return mask
 
 
-td = TravelDistance()
-travel = td.load_feature_data()
+
+
+td = TravelDistance(area="Region")
+travel = td.load_feature_data(exclude=["poverty","airports", "gdp", "airports", "Diesel", "Other"], include_age = True)
 
 # load cor_eff
 cor_eff = travel.corr(numeric_only=True)
 
 # create subplot
-_, ax = plt.subplots(figsize=(10,10), constrained_layout=True)
+_, ax = plt.subplots(figsize=(10,10))
 
 # get mask - bottom half
 mask = np.triu(np.ones_like(cor_eff, dtype=bool))
-mask = exclude_feature_comparisons(cor_eff, mask = mask, feats=td.get_features())
+#mask = exclude_feature_comparisons(cor_eff, mask = mask, feats=td.get_features())
 
 # heatmap
 sns.heatmap(cor_eff,linecolor='white',linewidths=1,mask=mask, ax=ax, annot=True,cmap="rocket_r")
 plt.show()
 
-g = sns.pairplot(travel)
-plt.show()
-
-
+g = sns.pairplot(travel, vars=['T. personal expenditures', 'Diesel', 'Electric (EV)', 'Gasoline'])
+#plt.show()
 
 
 '''
-
 Train model to game more insights into the data
 
 Linear-Regression - 
 
 '''
+lr = LR_Model(travel)
 
+feat = td.get_features()
+for f in feat:
+    lr.do_regression('Diesel',predict_idx=f)
 
 
 

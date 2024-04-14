@@ -10,6 +10,40 @@ date = datetime.now().strftime('%S')
 '''
 All of these are called from TravelDistance
 '''
+
+northeast_states = ['Connecticut', 'Maine', 'Massachusetts', 'New Hampshire', 'Rhode Island', 'Vermont', 'New Jersey', 'New York', 'Pennsylvania']
+southeast_states = ['Alabama', 'Arkansas', 'Delaware', 'Florida', 'Georgia', 'Kentucky', 'Louisiana', 'Maryland', 'Mississippi', 'North Carolina', 'Oklahoma', 'South Carolina', 'Tennessee', 'Texas', 'Virginia', 'West Virginia']
+south_states = ['Arizona', 'New Mexico', 'Texas', 'Oklahoma', 'Arkansas', 'Louisiana', 'Mississippi', 'Alabama', 'Florida', 'Georgia', 'South Carolina', 'North Carolina', 'Tennessee']
+midwest_states = ['Illinois', 'Indiana', 'Iowa', 'Kansas', 'Michigan', 'Minnesota', 'Missouri', 'Nebraska', 'North Dakota', 'Ohio', 'South Dakota', 'Wisconsin']
+west_states = ['Alaska', 'California', 'Colorado', 'Hawaii', 'Idaho', 'Montana', 'Nevada', 'Oregon', 'Utah', 'Washington', 'Wyoming']
+
+
+regions = {
+    'Northeast': northeast_states,
+    'Southeast': southeast_states,
+    'South': south_states,
+    'Midwest': midwest_states,
+    'West': west_states
+}
+
+
+
+northeast_abbreviations = ['CT', 'ME', 'MA', 'NH', 'RI', 'VT', 'NJ', 'NY', 'PA']
+southeast_abbreviations = ['AL', 'AR', 'DE', 'FL', 'GA', 'KY', 'LA', 'MD', 'MS', 'NC', 'OK', 'SC', 'TN', 'TX', 'VA', 'WV']
+south_abbreviations = ['AZ', 'NM', 'TX', 'OK', 'AR', 'LA', 'MS', 'AL', 'FL', 'GA', 'SC', 'NC', 'TN']
+midwest_abbreviations = ['IL', 'IN', 'IA', 'KS', 'MI', 'MN', 'MO', 'NE', 'ND', 'OH', 'SD', 'WI']
+west_abbreviations = ['AK', 'CA', 'CO', 'HI', 'ID', 'MT', 'NV', 'OR', 'UT', 'WA', 'WY']
+
+regions_abrv = {
+    'Northeast': northeast_abbreviations,
+    'Southeast': southeast_abbreviations,
+    'South': south_abbreviations,
+    'Midwest': midwest_abbreviations,
+    'West': west_abbreviations
+
+
+}
+
 # don't include these in datasets
 DROP_INDEX = ['United States', 'District of Columbia', 'Puerto Rico']
 
@@ -71,7 +105,8 @@ def drop_from_strings(data, drop_strings):
     return
 
 # prepare the index and datatypes of datasets
-def adjust_source_datatypes(dataset, index = "State"):
+def adjust_source_datatypes(dataset, index = "") -> pd.DataFrame:
+    
     dataset.index = dataset[index]
     dataset.drop(columns=index, inplace=True)
 
@@ -83,7 +118,6 @@ def adjust_source_datatypes(dataset, index = "State"):
 
 
 ##### playground
-
 
 
 
